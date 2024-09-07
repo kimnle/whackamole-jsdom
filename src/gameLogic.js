@@ -9,6 +9,14 @@ let highestGameScore = 0;
 let scoreDisplayText = document.getElementById("currentGameScore");
 let highscoreDispalyText = document.getElementById("highScoreDisplay");
 let timerDisplayText = document.getElementById("currentTimeRemaining");
+let gameRunningInfoContainer = document.getElementById("gameRunningInfo");
+let gamePlayContainer = document.getElementById("gamePlayArea");
+
+// because of function hoisting, we can call these function before they are declared!!
+// These are called as soon as the plage loads:
+toggleGameControlButtons();
+toggleGameplayContent();
+updateHighScore();
 
 // Game Score and Timer
 
@@ -18,6 +26,20 @@ function gameTimeStep() {
 
     // update time remaining displayed
     timerDisplayText.innerText = "Time Remaining: " + gameTimeRemaining;
+
+    // update the highscore based on score ASAP
+    updateHighScore();
+}
+
+function toggleGameplayContent() {
+    // toggle the score, timer text, and game area elements
+    if (gameTimeRemaining > 0) {
+        gameRunningInfoContainer.style.display = "inherit";
+        gamePlayContainer.style.display = "inherit";
+    } else {
+        gameRunningInfoContainer.style.display = "none";
+        gamePlayContainer.style.display = "none";
+    }
 }
 
 // if (gameTimeRemaining > 0) {
@@ -41,7 +63,24 @@ function toggleGameControlButtons() {
     }
 }
 
-toggleGameControlButtons();
+function updateHighScore() {
+    // check local storage for a high score
+    highestGameScore = localStorage.getItem("highScore") || 0;
+
+    // compare high score to current score
+    // if current score is higher than high score,
+    if (currentGameScore > highestGameScore) {
+        // write to local storage
+        localStorage.setItem("highScore", currentGameScore);
+
+        // update high score text
+        highestGameScore = currentGameScore;
+    }
+
+    // make sure the text is always reflecting the value
+    // even if value didn't change, because HTML has placeholder value that is not valid
+    highscoreDispalyText.innerText = "High Score: " + highestGameScore;
+}
 
 function startGame(desiredGameTime = defaultGameDuration) {
     gameTimeRemaining = desiredGameTime;
@@ -49,6 +88,8 @@ function startGame(desiredGameTime = defaultGameDuration) {
 
     // toggle game controls
     toggleGameControlButtons();
+    // toggle game content
+    toggleGameplayContent();
 
     gameCountdownInterval = setInterval(() => {
         gameTimeRemaining -= 1;
@@ -71,10 +112,18 @@ function startGame(desiredGameTime = defaultGameDuration) {
 
 function stopGame() {
     gameTimeRemaining = 0;
-    console.log("Stopped the game. Game time remaining is now: " + gameTimeRemaining);
+
+    // stop all intervals
+    clearInterval(gameCountdownInterval);
+    clearInterval(gameUpdateInterval);
+    gameTimeStep();
 
     // toggle game controls
     toggleGameControlButtons();
+    // toggle game content
+    toggleGameplayContent();
+
+    console.log("Stopped the game. Game time remaining is now: " + gameTimeRemaining);
 }
 
 startGameButton.addEventListener("click", () => {
