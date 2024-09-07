@@ -11,6 +11,8 @@ let highscoreDispalyText = document.getElementById("highScoreDisplay");
 let timerDisplayText = document.getElementById("currentTimeRemaining");
 let gameRunningInfoContainer = document.getElementById("gameRunningInfo");
 let gamePlayContainer = document.getElementById("gamePlayArea");
+let spawnableAreas = document.getElementById("whackamoleSpawnArea");
+let spawningInterval = null;
 
 // because of function hoisting, we can call these function before they are declared!!
 // These are called as soon as the plage loads:
@@ -29,6 +31,26 @@ function gameTimeStep() {
 
     // update the highscore based on score ASAP
     updateHighScore();
+}
+
+async function spawnMole() {
+    // pick a random spawnable area
+    let randomNumberWithinArrayRange = Math.floor(Math.random() * spawnableAreas.length);
+    let chosenSpawnArea = spawnableAreas[randomNumberWithinArrayRange];
+
+    // grab an image from PokeAPI
+    let randomPokemonNumber = Math.floor(Math.random() * 1025) + 1;
+    let apiResponse = await fetch("https://pokeapi.co/api/v2/pokemon/" + randomPokemonNumber);
+    let apiData = await apiResponse.json();
+
+    // create img with src from PokeAPI
+    // let whackamoleImage = document.createElement("img");
+    // whackamoleImage.apiData.sprites.other.home.front_default;
+
+    // put img into spawnable area
+    chosenSpawnArea.src = apiData.sprites.other.home.front_default;
+
+    // chosenSpawnArea.appendChild(whackamoleImage);
 }
 
 function toggleGameplayContent() {
@@ -97,7 +119,7 @@ function startGame(desiredGameTime = defaultGameDuration) {
         
         if (gameTimeRemaining <= 0) {
             // if game has no time remaining, stop subtracting from it!!
-            clearInterval(gameCountdownInterval);
+
             console.log("Game has finished!!");
             stopGame();
         }
@@ -105,6 +127,12 @@ function startGame(desiredGameTime = defaultGameDuration) {
     }, 1000);
 
     gameUpdateInterval = setInterval(gameTimeStep, 100);
+
+    // TO DO: Refactor for multiple spawningIntervals or find a way to make it
+    // a different duration on each repetition
+    spawningInterval = setInterval(() => {
+        spawnMole()
+    }, 1000);
 }
 
 // startGame();     // gameTimeRemaining becomes 120
@@ -116,6 +144,7 @@ function stopGame() {
     // stop all intervals
     clearInterval(gameCountdownInterval);
     clearInterval(gameUpdateInterval);
+    clearInterval(spawningInterval);
     gameTimeStep();
 
     // toggle game controls
