@@ -10,15 +10,32 @@ let scoreDisplayText = document.getElementById("currentGameScore");
 let highscoreDispalyText = document.getElementById("highScoreDisplay");
 let timerDisplayText = document.getElementById("currentTimeRemaining");
 let gameRunningInfoContainer = document.getElementById("gameRunningInfo");
-let gamePlayContainer = document.getElementById("gamePlayArea");
-let spawnableAreas = document.getElementById("whackamoleSpawnArea");
+let gamePlayContainer = document.getElementById("gameplayArea");
+let spawnableAreas = document.getElementsByClassName("whackamoleSpawnArea");
 let spawningInterval = null;
+let fastSpawningInterval = null;
+let despawnerInterval = null;
 
 // because of function hoisting, we can call these function before they are declared!!
 // These are called as soon as the plage loads:
 toggleGameControlButtons();
 toggleGameplayContent();
 updateHighScore();
+
+Array.from(spawnableAreas).forEach(area => {
+	area.addEventListener("click", (event) => {
+		whackamoleHandleClick(event);
+	});
+});
+
+function toggleCursor() {
+    let bodyElement = document.getElementsByTagName("body")[0];
+    if (gameTimeRemaining > 0) {
+        bodyElement.style.cursor = "url(./assets/hammer.gif), auto";
+    } else {
+        bodyElement.style.cursor = "";
+    }
+}
 
 // Game Score and Timer
 
@@ -34,6 +51,11 @@ function gameTimeStep() {
 }
 
 async function spawnMole() {
+    // handle the bug where a pokemon appears once after the game is over
+    if (gameTimeRemaining <= 0) {
+        return;
+    }
+
     // pick a random spawnable area
     let randomNumberWithinArrayRange = Math.floor(Math.random() * spawnableAreas.length);
     let chosenSpawnArea = spawnableAreas[randomNumberWithinArrayRange];
@@ -53,6 +75,31 @@ async function spawnMole() {
     // chosenSpawnArea.appendChild(whackamoleImage);
 }
 
+function wipeImagesFromSpawningAreas() {
+    // loop through spawnableAreas
+    // set the src property of each thing to ""
+    console.log(spawnableAreas);
+	Array.from(spawnableAreas).forEach(area => {
+		area.src = "";
+	});
+}
+
+function whackamoleHandleClick(event) {
+    if (event.target.src != "") {
+        currentGameScore++;
+        event.target.src = "";
+        console.log("Clicked on a mole!! Score increased, it's now: " + currentGameScore);
+    }
+}
+
+function deleteRandomWhackamole() {
+    // pick one random spawnableArea
+    let randomNumberWithinArrayRange = Math.floor(Math.random() * spawnableAreas.length);
+    let chosenSpawnArea = spawnableAreas[randomNumberWithinArrayRange];
+    // set its src property to ""
+    chosenSpawnArea.src = "";
+}
+
 function toggleGameplayContent() {
     // toggle the score, timer text, and game area elements
     if (gameTimeRemaining > 0) {
@@ -62,6 +109,25 @@ function toggleGameplayContent() {
         gameRunningInfoContainer.style.display = "none";
         gamePlayContainer.style.display = "none";
     }
+}
+
+function updateHighScore() {
+    // check local storage for a high score
+    highestGameScore = localStorage.getItem("highScore") || 0;
+
+    // compare high score to current score
+    // if current score is higher than high score,
+    if (currentGameScore > highestGameScore) {
+        // write to local storage
+        localStorage.setItem("highScore", currentGameScore);
+
+        // update high score text
+        highestGameScore = currentGameScore;
+    }
+
+    // make sure the text is always reflecting the value
+    // even if value didn't change, because HTML has placeholder value that is not valid
+    highscoreDispalyText.innerText = "High Score: " + highestGameScore;
 }
 
 // if (gameTimeRemaining > 0) {
@@ -85,33 +151,18 @@ function toggleGameControlButtons() {
     }
 }
 
-function updateHighScore() {
-    // check local storage for a high score
-    highestGameScore = localStorage.getItem("highScore") || 0;
-
-    // compare high score to current score
-    // if current score is higher than high score,
-    if (currentGameScore > highestGameScore) {
-        // write to local storage
-        localStorage.setItem("highScore", currentGameScore);
-
-        // update high score text
-        highestGameScore = currentGameScore;
-    }
-
-    // make sure the text is always reflecting the value
-    // even if value didn't change, because HTML has placeholder value that is not valid
-    highscoreDispalyText.innerText = "High Score: " + highestGameScore;
-}
-
 function startGame(desiredGameTime = defaultGameDuration) {
     gameTimeRemaining = desiredGameTime;
     console.log("Started the game. Game time remaining is now: " + gameTimeRemaining);
 
+    currentGameScore = 0;
+    wipeImagesFromSpawningAreas();
     // toggle game controls
     toggleGameControlButtons();
     // toggle game content
     toggleGameplayContent();
+    // toggle cursor
+    toggleCursor();
 
     gameCountdownInterval = setInterval(() => {
         gameTimeRemaining -= 1;
@@ -131,8 +182,15 @@ function startGame(desiredGameTime = defaultGameDuration) {
     // TO DO: Refactor for multiple spawningIntervals or find a way to make it
     // a different duration on each repetition
     spawningInterval = setInterval(() => {
-        spawnMole()
+        spawnMole();
     }, 1000);
+    fastSpawningInterval = setInterval(() => {
+        spawnMole();
+    }, 500);
+    // Randomly despawn or delete a whackmole from the game
+    despawnerInterval = setInterval(() => {
+        deleteRandomWhackamole();
+    }, 500);
 }
 
 // startGame();     // gameTimeRemaining becomes 120
@@ -145,18 +203,25 @@ function stopGame() {
     clearInterval(gameCountdownInterval);
     clearInterval(gameUpdateInterval);
     clearInterval(spawningInterval);
+    clearInterval(fastSpawningInterval);
+    clearInterval(despawnerInterval);
     gameTimeStep();
 
     // toggle game controls
     toggleGameControlButtons();
     // toggle game content
-    toggleGameplayContent();
+    // toggleGameplayContent();
+    wipeImagesFromSpawningAreas();
+    // toggle cursor
+    toggleCursor();
 
     console.log("Stopped the game. Game time remaining is now: " + gameTimeRemaining);
 }
 
+// null.addEventListener
+// button.addEventListener
 startGameButton.addEventListener("click", () => {
-    startGame(3);
+    startGame(10);
 });
 
 stopGameButton.addEventListener("click", () => {
